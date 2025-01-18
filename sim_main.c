@@ -27,5 +27,7 @@ int main(void)
     printf( "Substring '%s' is found at index %d in '%s'\n", testStrTwo,
         findSubString( testStr, testStrTwo ), testStr );
 
+    //getStringConstrained( somefile , false, false, false, ',', testStr );
+    
     return 0;
    }

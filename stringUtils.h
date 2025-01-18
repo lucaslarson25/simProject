@@ -16,4 +16,8 @@ void copyString( char *destStr, const char *sourceStr );
 
 int findSubString( const char *testStr, const char *searchSubStr );
 
+bool getStringConstrained( FILE *inStream, bool clearLeadingNonPrintable,
+    bool clearLeadingSpace, bool stopAtNonPrintable, char delimiter,
+    char *capturedString );
+
 #endif //STRING_UTILS_H

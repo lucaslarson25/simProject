@@ -137,3 +137,57 @@ int findSubString( const char *testStr, const char *searchSubStr )
     // Assume test has failed, return SUBSTRING_NOT_FOUND
     return SUBSTRING_NOT_FOUND;
    }
+
+bool getStringConstrained( FILE *inStream, bool clearLeadingNonPrintable,
+    bool clearLeadingSpace, bool stopAtNonPrintable, char delimiter,
+    char *capturedString )
+   {
+    // Initalize variables
+    int intChar = EOF;
+    int index = 0;
+
+    // Initialze output string
+    capturedString[ index ] = NULL_CHAR;
+
+    // Capture first value in stream
+    intChar = fgetc( inStream );
+
+    // Loop to clear non printable or space, if indicated
+    while( ( intChar != EOF) && ( ( clearLeadingNonPrintable
+        && (int)SPACE ) || ( clearLeadingSpace && intChar == (int)SPACE ) ) )
+       {
+        // Get next character
+        intChar = fgetc( inStream );
+       }
+    
+    // Check if file is empty
+    if( intChar == EOF )
+       {
+        // String was not found, return failure
+        return false;
+       }
+
+    // Loop across input
+        // ( Not at EOF and not reach max string length )
+        // AND ( (if stopAtNonPrintable flag is set AND intChar is nonPrintable)
+        // OR stopAtNonPrintable is false ) AND intChar is not the delimiter
+    while( ( intChar != EOF && index < MAX_STR_LEN - 1 )
+        && ( ( stopAtNonPrintable && intChar >= (int)SPACE )
+        || ( !stopAtNonPrintable ) ) && ( intChar != (char)delimiter ) )
+       {
+        // Place character in array
+        capturedString[ index ] = (char)intChar;
+
+        // Increment array index
+        index++;
+
+        // Set next element to null character (end of c string)
+        capturedString[ index ] = NULL_CHAR;
+
+        // Get next character (reprime)
+        intChar = fgetc( inStream );
+       }
+    
+    // Return success
+    return true;
+   }
