@@ -4,9 +4,14 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "StandardConstants.h"
+#include <stdlib.h>
 
 int getStringLength( const char *testStr );
 
 int compareString( const char *oneStr, const char *otherString );
+
+void concatenateString( char *destStr, const char *sourceStr );
+
+void copyString( char *destStr, const char *sourceStr );
 
 #endif //STRING_UTILS_H

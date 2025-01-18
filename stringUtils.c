@@ -43,3 +43,59 @@ int compareString( const char *oneStr, const char *otherStr )
     // If no character difference was found, return difference of lengths
     return getStringLength( oneStr ) - getStringLength( otherStr );
    }
+
+void concatenateString( char *destStr, const char *sourceStr )
+   {
+    // Initalize variables
+    int destIndex = getStringLength( destStr );
+    int sourceIndex = 0;
+    int sourceStrLen = getStringLength( sourceStr );
+
+    // Create temporary string pointer
+    char *tempString;
+    
+    
+    // Copy source string
+    tempString = (char *)malloc( sizeof( sourceStrLen + 1 ) );
+    copyString( tempString, sourceStr );
+
+    // Loop to the end of the source string
+    while( tempString[ sourceIndex ] != NULL_CHAR && destIndex < MAX_STR_LEN )
+       {
+        // Assign characters to end of destination string
+        destStr[ destIndex ] = tempString[ sourceIndex ];
+
+        // Update indicies
+        destIndex++;
+        sourceIndex++;
+
+        // Set temporary end of destination string
+        destStr[ destIndex ] = NULL_CHAR;
+       }
+
+    // Free temporary string
+    free(tempString);
+   }
+
+void copyString( char *destStr, const char *sourceStr )
+   {
+    // Initalize variables
+    int index = 0;
+
+    // Check for source/dest pointer not the same
+    if( destStr != sourceStr )
+       {
+        // Loop across source string
+        while( sourceStr[ index ] != NULL_CHAR && index < MAX_STR_LEN )
+           {
+            // Assign characters to end of dest string
+            destStr[ index ] = sourceStr[ index ];
+
+            // Increment index
+            index++;
+
+            // Set temporary end of dest string
+            destStr[ index ] = NULL_CHAR;
+           }
+       }
+   }

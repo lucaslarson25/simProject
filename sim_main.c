@@ -13,5 +13,14 @@ int main(void)
     printf( "The strings '1234' and '123' have the difference of %d\n",
         compareString( "1234", "123" ) );
 
+    char testStr[MAX_STR_LEN] = "1234";
+    concatenateString( testStr, "567" );
+
+    printf( "The strings '1234' and '567' concatted creates %s\n", testStr);
+
+    char testStrTwo[MAX_STR_LEN] = "Ploop";
+    copyString( testStr, testStrTwo );
+    printf( "Copied strings: %s %s\n", testStr, testStrTwo );
+
     return 0;
    }
