@@ -7,7 +7,7 @@ LFLAGS = -Wall -std=c99 -pedantic $(DEBUG)
 TARGET = sim
 
 # Define the object files
-OBJ = sim_main.o
+OBJ = sim_main.o stringUtils.o
 
 $(TARGET): $(OBJ)
 	$(CC) $(LFLAGS) $(OBJ) -o $(TARGET)
