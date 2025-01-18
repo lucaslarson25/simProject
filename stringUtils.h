@@ -7,4 +7,6 @@
 
 int getStringLength( const char *testStr );
 
+int compareString( const char *oneStr, const char *otherString );
+
 #endif //STRING_UTILS_H
