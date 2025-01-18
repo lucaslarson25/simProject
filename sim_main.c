@@ -22,5 +22,10 @@ int main(void)
     copyString( testStr, testStrTwo );
     printf( "Copied strings: %s %s\n", testStr, testStrTwo );
 
+    copyString( testStr, "Hello World!" );
+    copyString( testStrTwo, "World!" );
+    printf( "Substring '%s' is found at index %d in '%s'\n", testStrTwo,
+        findSubString( testStr, testStrTwo ), testStr );
+
     return 0;
    }

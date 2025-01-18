@@ -99,3 +99,41 @@ void copyString( char *destStr, const char *sourceStr )
            }
        }
    }
+
+int findSubString( const char *testStr, const char *searchSubStr )
+   {
+    // Initialize variables
+    int testStrLen = getStringLength( testStr );
+    int masterIndex = 0;
+    int searchIndex, internalIndex;
+
+    // Loop across testStr
+    while( masterIndex < testStrLen )
+       {
+        // Set internal loop index to current test string index
+        internalIndex = masterIndex;
+
+        // Set internal search index to zero
+        searchIndex = 0;
+
+        // Loop to end of test string
+        while( internalIndex <= testStrLen
+            && testStr[ internalIndex ] == searchSubStr[ searchIndex ] )
+           {
+            // Increment test string and substring indicies
+            internalIndex++;
+            searchIndex++;
+
+            // Check for end of the substring
+            if( searchSubStr[ searchIndex ] == NULL_CHAR )
+               {
+                // Return beginning location of the sub string
+                return masterIndex;
+               }
+           }
+        // Increment master index
+        masterIndex++;
+       }
+    // Assume test has failed, return SUBSTRING_NOT_FOUND
+    return SUBSTRING_NOT_FOUND;
+   }

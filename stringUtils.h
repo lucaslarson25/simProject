@@ -14,4 +14,6 @@ void concatenateString( char *destStr, const char *sourceStr );
 
 void copyString( char *destStr, const char *sourceStr );
 
+int findSubString( const char *testStr, const char *searchSubStr );
+
 #endif //STRING_UTILS_H
