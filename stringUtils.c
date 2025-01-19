@@ -191,3 +191,55 @@ bool getStringConstrained( FILE *inStream, bool clearLeadingNonPrintable,
     // Return success
     return true;
    }
+
+bool getStringToDelimiter(FILE *inStream, char delimiter, char *capturedString)
+   {
+    // Call engine with delimiter
+    return getStringConstrained(inStream, true, true, true, delimiter,
+        capturedString);
+   }
+
+bool getStringToLineEnd( FILE *inStream, char *capturedString )
+   {
+    // Call engine with delimiter
+    return getStringConstrained(inStream, true, true, true, NON_PRINTABLE_CHAR,
+        capturedString);
+   }
+
+void getSubString( char *destStr, const char *sourceStr, int startIndex,
+    int endIndex )
+   {
+    // Initialize variables
+    int sourceStrLen = getStringLength( sourceStr );
+    int destIndex = 0;
+    int sourceIndex = startIndex;
+
+    // Create char pointer for temporary string
+    char *tempStr;
+
+    // Check if indicies are valid
+    if( startIndex >= 0 && startIndex <= endIndex && endIndex < sourceStrLen)
+       {
+        // Allocate memory for temporary string and copy from source string
+        tempStr = (char *)malloc( sizeof(char) * ( sourceStrLen + 1 ) );
+        copyString( tempStr, sourceStr );
+
+        // Loop over start to end index
+        while( sourceIndex <= endIndex )
+           {
+            // Copy character from temp to dest strings
+            destStr[ destIndex ] = tempStr[ sourceIndex ];
+
+            // Increment indicies
+            destIndex++;
+            sourceIndex++;
+
+            // Add null character for c style string
+            destStr[ destIndex ] = NULL_CHAR;
+           }
+
+        // Free temporary string
+        free( tempStr );
+
+       }
+   }   

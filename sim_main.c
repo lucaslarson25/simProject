@@ -28,6 +28,9 @@ int main(void)
         findSubString( testStr, testStrTwo ), testStr );
 
     //getStringConstrained( somefile , false, false, false, ',', testStr );
+
+    getSubString( testStrTwo, testStr, 6, 11);
+    printf( "Substring: '%s'\n", testStrTwo );
     
     return 0;
    }

@@ -20,4 +20,10 @@ bool getStringConstrained( FILE *inStream, bool clearLeadingNonPrintable,
     bool clearLeadingSpace, bool stopAtNonPrintable, char delimiter,
     char *capturedString );
 
+bool getStringToDelimiter(FILE *inStream, char delimiter, char *capturedString);
+
+bool getStringToLineEnd( FILE *inStream, char *capturedString );
+
+void getSubString();
+
 #endif //STRING_UTILS_H
