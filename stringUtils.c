@@ -56,7 +56,7 @@ void concatenateString( char *destStr, const char *sourceStr )
     
     
     // Copy source string
-    tempString = (char *)malloc( sizeof( sourceStrLen + 1 ) );
+    tempString = (char *)malloc( ( sourceStrLen + 1 ) * sizeof(char) );
     copyString( tempString, sourceStr );
 
     // Loop to the end of the source string
