@@ -240,6 +240,45 @@ void getSubString( char *destStr, const char *sourceStr, int startIndex,
 
         // Free temporary string
         free( tempStr );
-
        }
    }   
+
+void setStrToLowerCase( char *destStr, const char *sourceStr )
+   {
+    // Initialize variables
+    int sourceStrLen = getStringLength( sourceStr );
+    int index = 0;
+
+    // Create temporary string pointer and copy source string
+    char *tempStr = (char *)malloc( sizeof(char) * ( sourceStrLen + 1 ) );
+    copyString( tempStr, sourceStr );
+
+    // Loop over temp string
+    while( tempStr[ index ] != NULL_CHAR && index < MAX_STR_LEN )
+       {
+        // Copy lower case character
+        destStr[ index ] = toLowerCase( tempStr[ index ] );
+
+        // Increment index
+        index++;
+
+        // Terminate c style string
+        destStr[ index ] = NULL_CHAR;
+       }
+    // Free temp string
+    free( tempStr );
+
+   }
+
+char toLowerCase( char inChar )
+   {
+    // Check for lowercase character
+    if( inChar >= 'A' && inChar <= 'Z' )
+       {
+        // Return lowercase
+        return inChar - 'A' + 'a';
+       }
+
+    // Otherwise, character is lowercase
+    return inChar;
+   }

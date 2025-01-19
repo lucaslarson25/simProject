@@ -32,5 +32,9 @@ int main(void)
     getSubString( testStrTwo, testStr, 6, 11);
     printf( "Substring: '%s'\n", testStrTwo );
     
+    setStrToLowerCase( testStrTwo, testStr );
+    printf( "Lowercase: '%s' and '%c'\n", testStrTwo, toLowerCase('Z'));
+
+
     return 0;
    }

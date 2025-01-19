@@ -24,6 +24,11 @@ bool getStringToDelimiter(FILE *inStream, char delimiter, char *capturedString);
 
 bool getStringToLineEnd( FILE *inStream, char *capturedString );
 
-void getSubString();
+void getSubString( char *destStr, const char *sourceStr, int startIndex,
+    int endIndex );
+
+void setStrToLowerCase( char *destStr, const char *sourceStr );
+
+char toLowerCase( char inChar );
 
 #endif //STRING_UTILS_H
