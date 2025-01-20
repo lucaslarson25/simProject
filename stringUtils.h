@@ -31,4 +31,6 @@ void setStrToLowerCase( char *destStr, const char *sourceStr );
 
 char toLowerCase( char inChar );
 
+void utilitiesCheck();
+
 #endif //STRING_UTILS_H
