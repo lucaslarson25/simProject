@@ -10,6 +10,8 @@
 // constant for end of c-string null character
 #define CARRIAGE_RETURN_CHAR '\r'
 
+#define SEMICOLON ';'
+
 //constant for a COLON
 #define COLON ':'
 

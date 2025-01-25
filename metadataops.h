@@ -4,7 +4,16 @@
 #include "datatypes.h"
 #include "sim_main.h"
 
-typedef enum {MSG} OpCodeMessages; //FIXME THIS IS JUST A PLACEHOLDER
+typedef enum { BAD_ARG_VAL = -1,
+    NO_ACCESS_ERR,
+    MD_FILE_ACCESS_ERR,
+    MD_CORRUPT_DESCRIPTOR_ERR,
+    OPCMD_ACCESS_ERR,
+    CORRUPT_OPCMD_ERR,
+    CORRUPT_OPCMD_ARG_ERR,
+    UNBALANCED_START_END_ERR,
+    COMPLETE_OPCMD_FOUND_MSG,
+    LAST_OPCMD_FOUND_MSG} OpCodeMessages;
 
 bool getMetaData( const char *fileName, OpCodeType **opCodeDataHead,
     char *endStateMsg );
