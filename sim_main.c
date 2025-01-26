@@ -151,7 +151,7 @@ bool proccessCmdLine( int numArgs, char **strVector, CmdLineData *clDataPtr )
                 // Find lengths to verify name
                 fileStrLen = getStringLength( strVector[ numArgs - 1] );
                 fileStrSubLoc = findSubString( strVector[ numArgs - 1 ],
-                    ".cfg" );
+                    ".cnf" );
 
                 // Verify string found and correct format
                 if( fileStrSubLoc != SUBSTRING_NOT_FOUND
