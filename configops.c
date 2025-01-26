@@ -35,7 +35,7 @@ bool getConfigData( const char *fileName, ConfigDataType **configData,
 
     // Get the first line, check for failure
     if( !getStringToDelimiter( fileAccessPtr, COLON, dataBuffer ) ||
-    compareString(dataBuffer, "Start Simulator Configuration File") != STR_EQ );
+    compareString(dataBuffer, "Start Simulator Configuration File") != STR_EQ )
        {
         // Close the file
         fclose( fileAccessPtr );

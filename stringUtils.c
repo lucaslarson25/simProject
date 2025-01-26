@@ -153,8 +153,8 @@ bool getStringConstrained( FILE *inStream, bool clearLeadingNonPrintable,
     intChar = fgetc( inStream );
 
     // Loop to clear non printable or space, if indicated
-    while( ( intChar != EOF) && ( ( clearLeadingNonPrintable
-        && (int)SPACE ) || ( clearLeadingSpace && intChar == (int)SPACE ) ) )
+    while( ( intChar != EOF) && ( ( clearLeadingNonPrintable && intChar
+        < (int)SPACE ) || ( clearLeadingSpace && intChar == (int)SPACE ) ) )
        {
         // Get next character
         intChar = fgetc( inStream );

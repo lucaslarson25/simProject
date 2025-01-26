@@ -86,7 +86,7 @@ bool getMetaData( const char *fileName, OpCodeType **opCodeDataHead,
 
             // Check the last line for incorrect end descriptor
             if( !getStringToDelimiter( fileAccessPtr, PERIOD, dataBuffer )
-                || compareString( dataBuffer, "End Program Meta-Data Code " )
+                || compareString( dataBuffer, "End Program Meta-Data Code" )
                 != STR_EQ )
                {
                 // Set access result to corrupted descriptor error
