@@ -2,3 +2,5 @@
 **/sim01
 **/*.cfg
 **/*.mdf
+**/*.tar.gz
+**/*.xlsx
