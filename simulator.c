@@ -8,15 +8,22 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
     OpCodeType *mdPtr = metaDataMstrPtr;
     PCBtype *tempNode = NULL;
     PCBtype *readyQueue = NULL;
+    OutputString *outputBuffer = NULL;
     int pid = 0;
     char timer [ MIN_STR_LEN ];
+    char outStr [ MAX_STR_LEN ];
 
     
     // Set up output log
+    if( configPtr->logToCode == LOGTO_FILE_CODE )
+       {
+        printf( "Simulator running for output to file only\n" );
+       }
 
     // Start OS Sim timer
     accessTimer( ZERO_TIMER, timer);
-    printf( "%s, OS: Simulator start\n", timer );
+    sprintf(outStr, "%s, OS: Simulator start\n", timer );
+    outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
     // Create all PCBs (loop over MD LL)
     while( mdPtr != NULL )
@@ -28,8 +35,10 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
             pid++;
             readyQueue = addPCB(readyQueue, tempNode);
             accessTimer( LAP_TIMER, timer);
-            printf( "%s, OS: Process %i set to READY state from NEW state\n",
+            sprintf(outStr, 
+                    "%s, OS: Process %i set to READY state from NEW state\n",
                                                         timer, tempNode->pid );
+            outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
            }
         mdPtr = mdPtr->nextNode;
         // Calculate total time for process (app start to app end)
@@ -42,27 +51,33 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
         // Get the next scheduled PCB
         tempNode = getPCB( readyQueue, configPtr );
         accessTimer( LAP_TIMER, timer );
-        printf( "%s, OS: Process %i selected with %.0lf ms remaining\n", timer,
-                                    tempNode->pid, tempNode->burstT );
+        sprintf( outStr, "%s, OS: Process %i selected with %.0lf ms remaining\n", 
+                                timer, tempNode->pid, tempNode->burstT );
+        outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
         // Move from ready queue to runnning state
         tempNode = runPCB( &readyQueue, tempNode->pid, configPtr );
         accessTimer( LAP_TIMER, timer );
-        printf( "%s, OS: Process %i set from READY to RUNNING\n\n",
+        sprintf( outStr, "%s, OS: Process %i set from READY to RUNNING\n\n",
                                                         timer, tempNode->pid );
+        outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
-        tempNode = executePCB( tempNode, configPtr );
+        tempNode = executePCB( tempNode, configPtr, &outputBuffer );
         // Free the node after it is complete (terminate)
         free(tempNode);
        }
 
     accessTimer( LAP_TIMER, timer );
-    printf( "%s, OS: System stop\n", timer );
+    sprintf( outStr, "%s, OS: System stop\n", timer );
+    outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
-    readyQueue = freePCBs(readyQueue);
+    readyQueue = freePCBs( readyQueue );
 
     accessTimer( LAP_TIMER, timer );
-    printf( "%s, OS: Simulation end\n", timer );
+    sprintf( outStr, "%s, OS: Simulation end\n", timer );
+    outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
+
+    outputBuffer = printBuffer( outputBuffer, configPtr );
    }
 
 
@@ -196,9 +211,11 @@ PCBtype *runPCB( PCBtype **readyQueueHead, int pid, ConfigDataType *configPtr )
     return foundPCB;
    }
 
-PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
+PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
+                                                OutputString **outputBuffer )
    {
     char timer [ MIN_STR_LEN ];
+    char outStr [ MAX_STR_LEN ];
     int time;
     pthread_t waitThread;
     OpCodeType *opCode = pcb->firstOp->nextNode;
@@ -210,9 +227,10 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
            {
 
             accessTimer( LAP_TIMER, timer );
-            printf( "%s, Process: %i, %s %sput operation start\n",
+            sprintf( outStr, "%s, Process: %i, %s %sput operation start\n",
                         timer, pcb->pid, opCode->strArg1, opCode->inOutArg );
-            //THREAD
+            *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
+            
             time = opCode->intArg2 * configPtr->ioCycleRate;
             pthread_create( &waitThread, NULL, waitIO, (void*) &time);
             pthread_join( waitThread, NULL );
@@ -220,23 +238,26 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
             pcb->burstT -= time;
 
             accessTimer( LAP_TIMER, timer );
-            printf( "%s, Process: %i, %s %sput operation end\n",
+            sprintf( outStr, "%s, Process: %i, %s %sput operation end\n",
                         timer, pcb->pid, opCode->strArg1, opCode->inOutArg );
+            *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
            }
 
         else if( compareString( opCode->command, "cpu" ) == STR_EQ )
            {
             accessTimer( LAP_TIMER, timer );
-            printf( "%s, Process: %i, cpu process operation start\n",
+            sprintf( outStr, "%s, Process: %i, cpu process operation start\n",
                                                             timer, pcb->pid );
+            *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
 
             time = opCode->intArg2 * configPtr->procCycleRate;
             runTimer(time);
             pcb->burstT -= time;
 
             accessTimer( LAP_TIMER, timer );
-            printf( "%s, Process: %i, cpu process operation end\n",
+            sprintf( outStr, "%s, Process: %i, cpu process operation end\n",
                                                             timer, pcb->pid );
+            *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
            }
         // ELSE for mem statements
 
@@ -244,12 +265,14 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
        }
 
     accessTimer( LAP_TIMER, timer );
-    printf( "\n%s, OS: Process %i ended\n", timer, pcb->pid );
+    sprintf( outStr, "\n%s, OS: Process %i ended\n", timer, pcb->pid );
+    *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
     
     pcb->pState = EXIT_STATE;
 
     accessTimer( LAP_TIMER, timer );
-    printf( "%s, OS: Process %i set to EXIT\n", timer, pcb->pid );
+    sprintf( outStr, "%s, OS: Process %i set to EXIT\n", timer, pcb->pid );
+    *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
 
     return pcb;
    }
@@ -259,4 +282,65 @@ void *waitIO( void *ptr )
     int *ms = (int *)(ptr);
     runTimer( *ms );
     return NULL;
+   }
+
+OutputString *bufferOutput( OutputString *headPtr, const char *outStr,
+                                                    ConfigDataType *configPtr )
+   {
+    OutputString *newNode = ( OutputString * )malloc( sizeof( OutputString ) );
+    OutputString *wkgPtr = headPtr;
+    copyString( newNode->outStr, outStr );
+    newNode->nextOutputString = NULL;
+
+    if( configPtr->logToCode == LOGTO_MONITOR_CODE ||
+        configPtr->logToCode == LOGTO_BOTH_CODE )
+       {
+        printf( "%s", outStr );
+       }
+
+    if( wkgPtr == NULL )
+       {
+        return newNode;
+       }
+    while( wkgPtr->nextOutputString != NULL)
+       {
+        wkgPtr = wkgPtr->nextOutputString;
+       }
+    
+    wkgPtr->nextOutputString = newNode;
+    
+    return headPtr;
+
+   }
+
+OutputString *printBuffer( OutputString *headPtr, ConfigDataType *configPtr )
+   {
+    OutputString *wkgPtr = headPtr, *prev = NULL;
+    bool fileOut = configPtr->logToCode == LOGTO_FILE_CODE || 
+                        configPtr->logToCode == LOGTO_BOTH_CODE;
+    FILE *outFile = NULL;
+
+    if( fileOut )
+       {
+        outFile = fopen( configPtr->logToFileName, FILE_WRITE );
+       }
+
+    while( wkgPtr != NULL )
+       {
+        if( fileOut )
+           {
+            fprintf( outFile, "%s", wkgPtr->outStr );
+           }
+        
+        prev = wkgPtr;
+        wkgPtr = wkgPtr->nextOutputString;
+        free( prev );
+       }
+    
+    if( fileOut )
+       {
+        fclose( outFile );
+       }
+
+    return headPtr;
    }

@@ -15,6 +15,11 @@ typedef struct PCBtype
     struct PCBtype *nextPCB;
    } PCBtype;
 
+typedef struct OutputString
+   {
+    char outStr[ MAX_STR_LEN ];
+    struct OutputString *nextOutputString;
+   } OutputString;
 
 void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr );
 
@@ -31,8 +36,14 @@ PCBtype *getPCB(PCBtype *readyQueueHead, ConfigDataType *configPtr );
 
 PCBtype *runPCB( PCBtype **readyQueueHead, int pid, ConfigDataType *configPtr );
 
-PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr );
+PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
+                                                OutputString **outputBuffer );
 
 void *waitIO( void *ptr );
+
+OutputString *bufferOutput( OutputString *headPtr, const char *outStr,
+                                                    ConfigDataType *configPtr );
+
+OutputString *printBuffer( OutputString *headPtr, ConfigDataType *configPtr );
 
 #endif

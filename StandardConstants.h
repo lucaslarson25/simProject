@@ -57,4 +57,6 @@
 
 #define STR_EQ 0
 
+#define FILE_WRITE "w"
+
 #endif  // STANDARD_CONSTANTS
