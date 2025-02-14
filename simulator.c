@@ -200,6 +200,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
    {
     char timer [ MIN_STR_LEN ];
     int time;
+    pthread_t waitThread;
     OpCodeType *opCode = pcb->firstOp->nextNode;
     while( opCode != NULL && !( compareString( opCode->command, "app") == STR_EQ
                                                                             ) )
@@ -212,6 +213,12 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
             printf( "%s, Process: %i, %s %sput operation start\n",
                         timer, pcb->pid, opCode->strArg1, opCode->inOutArg );
             //THREAD
+            time = opCode->intArg2 * configPtr->ioCycleRate;
+            pthread_create( &waitThread, NULL, waitIO, (void*) &time);
+            pthread_join( waitThread, NULL );
+
+            pcb->burstT -= time;
+
             accessTimer( LAP_TIMER, timer );
             printf( "%s, Process: %i, %s %sput operation end\n",
                         timer, pcb->pid, opCode->strArg1, opCode->inOutArg );
@@ -231,10 +238,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
             printf( "%s, Process: %i, cpu process operation end\n",
                                                             timer, pcb->pid );
            }
-        else
-           {
-            //printf("PROC: %s\n", opCode->command );
-           }
+        // ELSE for mem statements
 
         opCode = opCode->nextNode;
        }
@@ -248,4 +252,11 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr )
     printf( "%s, OS: Process %i set to EXIT\n", timer, pcb->pid );
 
     return pcb;
+   }
+
+void *waitIO( void *ptr )
+   {
+    int *ms = (int *)(ptr);
+    runTimer( *ms );
+    return NULL;
    }

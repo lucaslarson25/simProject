@@ -4,6 +4,7 @@
 #include "datatypes.h"
 #include "sim_main.h"
 #include "simtimer.h"
+#include <pthread.h>
 
 typedef struct PCBtype 
    {
@@ -32,5 +33,6 @@ PCBtype *runPCB( PCBtype **readyQueueHead, int pid, ConfigDataType *configPtr );
 
 PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr );
 
+void *waitIO( void *ptr );
 
 #endif
