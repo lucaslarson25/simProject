@@ -217,6 +217,7 @@ void displayConfigData( ConfigDataType *configData )
     configCodeToString( configData->cpuSchedCode, displayString );
     printf( "CPU schedule selection : %s\n", displayString );
     printf( "Quantum time           : %d\n", configData->quantumCycles );
+    printf( "Memory Available       : %d\n", configData->memAvailable );
     printf( "Memory Display         : " );
     if( configData->memDisplay )
        {
@@ -226,7 +227,6 @@ void displayConfigData( ConfigDataType *configData )
        {
         printf( "Off\n" );
        }
-    printf( "Memory Available       : %d\n", configData->memAvailable );
     printf( "Process cycle rate     : %d\n", configData->procCycleRate );
     printf( "I/O cycle rate         : %d\n", configData->ioCycleRate );
     configCodeToString( configData->logToCode, displayString );
