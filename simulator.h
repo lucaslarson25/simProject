@@ -28,8 +28,6 @@ PCBtype *createPCB(PCBtype *newNode, OpCodeType **headPtr, int pid,
 
 PCBtype *addPCB( PCBtype *localPtr, PCBtype *newNode );
 
-void displayPCBs( PCBtype *localPtr );
-
 PCBtype *freePCBs( PCBtype *localPtr );
 
 PCBtype *getPCB(PCBtype *readyQueueHead, ConfigDataType *configPtr );
