@@ -1,6 +1,9 @@
 **/*.o
 **/sim01
-**/*.cfg
+**/sim02
+**/sim03
+**/sim04
+**/*.cnf
 **/*.mdf
 **/*.tar.gz
 **/*.xlsx

@@ -4,7 +4,7 @@ DEBUG = -g
 LFLAGS = -Wall -std=c99 -pedantic -lpthread $(DEBUG)
 
 # Define the target executable file
-TARGET = sim01
+TARGET = sim03
 
 # Define the object files
 OBJ = sim_main.o stringUtils.o configops.o metadataops.o simulator.o simtimer.o
