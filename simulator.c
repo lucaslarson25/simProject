@@ -201,14 +201,38 @@ PCBtype *freePCBs( PCBtype *localPtr )
 // Return next PCB to run based on CPU schedule type
 PCBtype *getPCB(PCBtype *readyQueueHead, ConfigDataType *configPtr )
    {
+    PCBtype *pcbToReturn, *wkgPtr;
+
     // Get the next PCB based on CPU schedule type
     if( configPtr->cpuSchedCode == CPU_SCHED_FCFS_N_CODE )
        {
         // Return first PCB
         return readyQueueHead;
        }
+    
+    else if( configPtr->cpuSchedCode == CPU_SCHED_SJF_N_CODE )
+       {
+        // Find the next shortest job based off of calculated burst time
+        pcbToReturn = readyQueueHead;
+        wkgPtr = readyQueueHead->nextPCB;
 
-    // Sim2: All codes will default to FCFS-N
+        // Iterate over metadata LL to find PCB with shortest burst time
+        while( wkgPtr != NULL)
+           {
+            if(wkgPtr->burstT < pcbToReturn->burstT)
+               {
+                pcbToReturn = wkgPtr;
+               }
+
+            wkgPtr = wkgPtr->nextPCB;
+           }
+
+        // Return found PCB
+        return pcbToReturn;
+
+       }
+
+    // Sim3: All other codes will default to FCFS-N
     configPtr->cpuSchedCode = CPU_SCHED_FCFS_N_CODE;
     return getPCB( readyQueueHead, configPtr );
    }
