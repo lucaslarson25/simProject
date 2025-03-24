@@ -59,4 +59,12 @@
 
 #define FILE_WRITE "w"
 
+#define FREE_ALL_MEM -1
+
+#define X_STATE -1
+
+#define ZERO 0
+
+#define ONE 1
+
 #endif  // STANDARD_CONSTANTS

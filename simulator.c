@@ -10,6 +10,8 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
     PCBtype *tempNode = NULL;
     PCBtype *readyQueue = NULL;
     OutputString *outputBuffer = NULL;
+    VmemType *memory = NULL;
+    SysErrCode sysErr = NO_ERR;
     int pid = 0;
     char timer [ MIN_STR_LEN ];
     char outStr [ MAX_STR_LEN ];
@@ -23,7 +25,7 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
 
     // Start OS Sim timer
     accessTimer( ZERO_TIMER, timer);
-    sprintf(outStr, "%s, OS: Simulator start\n", timer );
+    sprintf(outStr, "  %s, OS: Simulator start\n", timer );
     outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
     // Create all PCBs (loop over MD LL)
@@ -39,7 +41,7 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
             readyQueue = addPCB(readyQueue, tempNode);
             accessTimer( LAP_TIMER, timer);
             sprintf(outStr, 
-                    "%s, OS: Process %i set to READY state from NEW state\n",
+                    "  %s, OS: Process %i set to READY state from NEW state\n",
                                                         timer, tempNode->pid );
             outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
            }
@@ -47,28 +49,35 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
         mdPtr = mdPtr->nextNode;
        }
 
+    // Initialize Virtual Memory
+    memory = initMem( configPtr, &outputBuffer );
+
     // Reset metadata wrkptr to the start of LL
     mdPtr = metaDataMstrPtr;
 
     // Set up master loop (loop while readyQueue is not empty)
     while( readyQueue != NULL )
        {
+        // Reset sysErr flag
+        sysErr = NO_ERR;
+
         // Get the next scheduled PCB
         tempNode = getPCB( readyQueue, configPtr );
         accessTimer( LAP_TIMER, timer );
-        sprintf( outStr, "%s, OS: Process %i selected with %.0lf ms remaining\n", 
+        sprintf( outStr, "  %s, OS: Process %i selected with %.0lf ms remaining\n", 
                                 timer, tempNode->pid, tempNode->burstT );
         outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
         // Move from ready queue to runnning state
         tempNode = runPCB( &readyQueue, tempNode->pid, configPtr );
         accessTimer( LAP_TIMER, timer );
-        sprintf( outStr, "%s, OS: Process %i set from READY to RUNNING\n\n",
+        sprintf( outStr, "  %s, OS: Process %i set from READY to RUNNING\n\n",
                                                         timer, tempNode->pid );
         outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
         // Execute PCB's instructions
-        tempNode = executePCB( tempNode, configPtr, &outputBuffer );
+        tempNode = executePCB( tempNode, configPtr, &outputBuffer, &sysErr,
+                                                                    memory );
 
         // Free the node after it is complete (terminate)
         free(tempNode);
@@ -76,15 +85,18 @@ void runSim( ConfigDataType *configPtr, OpCodeType *metaDataMstrPtr )
 
     // All processes are terminated, declare system stop
     accessTimer( LAP_TIMER, timer );
-    sprintf( outStr, "%s, OS: System stop\n", timer );
+    sprintf( outStr, "  %s, OS: System stop\n", timer );
     outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
     // Ensure all PCB structs are freed
     readyQueue = freePCBs( readyQueue );
 
+    // Free all VMem
+    memory = freeMem( FREE_ALL_MEM, memory, configPtr, &outputBuffer );
+
     // Declare end of simulation
     accessTimer( LAP_TIMER, timer );
-    sprintf( outStr, "%s, OS: Simulation end\n", timer );
+    sprintf( outStr, "  %s, OS: Simulation end\n", timer );
     outputBuffer = bufferOutput( outputBuffer, outStr, configPtr );
 
     // Print string buffer LL to log file
@@ -269,7 +281,7 @@ PCBtype *runPCB( PCBtype **readyQueueHead, int pid, ConfigDataType *configPtr )
 
 // Execute PCB opcodes and terminate
 PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
-                                                OutputString **outputBuffer )
+            OutputString **outputBuffer, SysErrCode* sysErr, VmemType *memHeadPtr )
    {
     // Initialize variables
     char timer [ MIN_STR_LEN ];
@@ -282,14 +294,14 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
 
     // Loop over op code LL until NULL or next "app" command
     while( opCode != NULL && !( compareString( opCode->command, "app") == STR_EQ
-                                                                            ) )
+                                                      ) && *sysErr == NO_ERR )
        {
         // Check for dev command
         if( compareString( opCode->command, "dev" ) == STR_EQ )
            {
             // Time and print operation start
             accessTimer( LAP_TIMER, timer );
-            sprintf( outStr, "%s, Process: %i, %s %sput operation start\n",
+            sprintf( outStr, "  %s, Process: %i, %s %sput operation start\n",
                         timer, pcb->pid, opCode->strArg1, opCode->inOutArg );
             *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
             
@@ -305,7 +317,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
 
             // Time and print operation end
             accessTimer( LAP_TIMER, timer );
-            sprintf( outStr, "%s, Process: %i, %s %sput operation end\n",
+            sprintf( outStr, "  %s, Process: %i, %s %sput operation end\n",
                         timer, pcb->pid, opCode->strArg1, opCode->inOutArg );
             *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
            }
@@ -315,7 +327,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
            {
             // Time and print operation start
             accessTimer( LAP_TIMER, timer );
-            sprintf( outStr, "%s, Process: %i, cpu process operation start\n",
+            sprintf( outStr, "  %s, Process: %i, cpu process operation start\n",
                                                             timer, pcb->pid );
             *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
 
@@ -326,27 +338,108 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
 
             // Time and print operation end
             accessTimer( LAP_TIMER, timer );
-            sprintf( outStr, "%s, Process: %i, cpu process operation end\n",
+            sprintf( outStr, "  %s, Process: %i, cpu process operation end\n",
                                                             timer, pcb->pid );
             *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
            }
-        // ELSE for mem statements (will implement for Sim03)
+        // Lastly, op command must be mem
+        else
+           {
+            // Check for allocation
+            if( compareString( opCode->strArg1, "allocate" ) == STR_EQ )
+               {
+               // Time and print operation start
+                accessTimer( LAP_TIMER, timer );
+                sprintf( outStr, 
+                            "  %s, Process: %i, mem allocate request (%i, %i)\n",
+                            timer, pcb->pid, opCode->intArg2, opCode->intArg3 );
+
+                *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
+
+                *sysErr = allocateMem( pcb->pid, opCode->intArg2,
+                    opCode->intArg3, &memHeadPtr, configPtr, outputBuffer );
+
+               }
+            // Otherwise, must be access
+            else
+               {
+                // Time and print operation start
+                accessTimer( LAP_TIMER, timer );
+                sprintf( outStr, 
+                            "  %s, Process: %i, mem access request (%i, %i)\n",
+                            timer, pcb->pid, opCode->intArg2, opCode->intArg3 );
+                            
+                *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
+
+                *sysErr = accessMem( pcb->pid, opCode->intArg2, opCode->intArg3,
+                                        memHeadPtr, configPtr, outputBuffer );
+               }
+
+            // Check for allocation error
+            if( *sysErr == ALL_ERR )
+               {
+                // Time and print operation failure
+                accessTimer( LAP_TIMER, timer );
+                sprintf( outStr, 
+                            "  %s, Process: %i, failed mem allocate request\n",
+                                                            timer, pcb->pid );
+                            
+                *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
+               }
+
+            // Check for access error
+            else if( *sysErr == ACC_ERR )
+               {
+                // Time and print operation failure
+                accessTimer( LAP_TIMER, timer );
+                sprintf( outStr, 
+                                "  %s, Process: %i, failed mem access request\n",
+                                                            timer, pcb->pid );
+                            
+                *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
+               }
+
+            // No memory errors
+            else
+               {
+                // Time and print operation success
+                accessTimer( LAP_TIMER, timer );
+                sprintf( outStr, 
+                                "  %s, Process: %i, successful mem %s request\n",
+                                            timer, pcb->pid, opCode->strArg1 );
+                            
+                *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
+               }
+           }
 
         // Increment opCode pointer
         opCode = opCode->nextNode;
        }
 
-    // Time and print process end
-    accessTimer( LAP_TIMER, timer );
-    sprintf( outStr, "\n%s, OS: Process %i ended\n", timer, pcb->pid );
-    *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
+    if( *sysErr == NO_ERR )
+       {
+        // Time and print process end
+        accessTimer( LAP_TIMER, timer );
+        sprintf( outStr, "\n  %s, OS: Process %i ended\n", timer, pcb->pid );
+        *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
+       }
+    else
+       {
+        // Time and print process end
+        accessTimer( LAP_TIMER, timer );
+        sprintf( outStr, "\n  %s, OS: Segmentation fault, Process %i ended\n", 
+                                                            timer, pcb->pid );
+        *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
+       }
+
+    memHeadPtr = freeMem( pcb->pid, memHeadPtr, configPtr, outputBuffer );
     
     // Set PCB state to exit
     pcb->pState = EXIT_STATE;
 
     // Time and print process termination
     accessTimer( LAP_TIMER, timer );
-    sprintf( outStr, "%s, OS: Process %i set to EXIT\n", timer, pcb->pid );
+    sprintf( outStr, "  %s, OS: Process %i set to EXIT\n", timer, pcb->pid );
     *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
 
     // Return terminated PCB
@@ -448,4 +541,188 @@ OutputString *printBuffer( OutputString *headPtr, ConfigDataType *configPtr )
 
     // Return empty buffer LL
     return headPtr;
+   }
+
+SysErrCode allocateMem( int pid, int base, int offset, VmemType** memHeadPtr,
+                        ConfigDataType *configPtr, OutputString **outputBuffer )
+   {
+    VmemType *wkgPtr = *memHeadPtr;
+    VmemType *tempPtr;
+    bool memSuccess = false;
+
+    while( wkgPtr != NULL && !memSuccess)
+       {
+        if( wkgPtr->pid != X_STATE && ((wkgPtr->startVAdr <= base && wkgPtr->endVAdr > base) ||
+            (wkgPtr->startVAdr < base + offset && wkgPtr->endVAdr > base + offset)) )
+           {
+            printMem( *memHeadPtr, configPtr, outputBuffer, "After allocate overlap failure\n");
+            return ALL_ERR;
+           }
+
+        // TODO check for overlapping V addresses
+        else if( wkgPtr->pid == X_STATE && wkgPtr->endAdr - wkgPtr->startAdr >= offset )
+           {
+            memSuccess = true;
+            tempPtr = ( VmemType* )malloc( sizeof( VmemType ) );
+            tempPtr->startAdr = wkgPtr->startAdr + offset;
+            tempPtr->endAdr = wkgPtr->endAdr;
+            tempPtr->pid = X_STATE;
+            tempPtr->startVAdr = ZERO;
+            tempPtr->endVAdr = ZERO;
+            tempPtr->nextBlock = NULL;
+            
+            wkgPtr->endAdr = wkgPtr->startAdr + offset - ONE;
+            wkgPtr->startVAdr = base;
+            wkgPtr->endVAdr = base + offset - ONE;
+            wkgPtr->pid = pid;
+            wkgPtr->nextBlock = tempPtr;
+           }
+        
+        wkgPtr = wkgPtr->nextBlock;
+       }
+
+    if( memSuccess )
+       {
+        printMem( *memHeadPtr, configPtr, outputBuffer, "After allocate success\n");
+        return NO_ERR;
+       }
+
+    printMem( *memHeadPtr, configPtr, outputBuffer, "After allocate out of memory failure\n");
+    return ALL_ERR;
+   }
+
+SysErrCode accessMem(int pid, int base, int offset, VmemType *memHeadPtr,
+                        ConfigDataType *configPtr, OutputString **outputBuffer )
+   {
+    VmemType *wkgPtr = memHeadPtr;
+
+    while( wkgPtr != NULL)
+       {
+        if( wkgPtr->pid == pid && wkgPtr->startVAdr <= base && wkgPtr->endVAdr >= base + offset - ONE )
+           {
+            printMem( memHeadPtr, configPtr, outputBuffer, "After access success\n");
+            return NO_ERR;
+           }
+        wkgPtr = wkgPtr->nextBlock;
+       }
+
+    printMem( memHeadPtr, configPtr, outputBuffer, "After access failure\n");
+    return ACC_ERR;
+   }
+
+VmemType *freeMem( int pid, VmemType *memHeadPtr, ConfigDataType *configPtr,
+                                                 OutputString **outputBuffer )
+   {
+    VmemType *wkgPtr = memHeadPtr;
+    VmemType *nextPtr;
+    char outStr [MAX_STR_LEN];
+
+    // If pid == FREE_ALL_MEM, free all blocks and reset to one large free block
+    if( pid == FREE_ALL_MEM )
+       {
+        while( wkgPtr != NULL )
+           {
+            nextPtr = wkgPtr->nextBlock;
+            free(wkgPtr);
+            wkgPtr = nextPtr;
+           }
+
+        printMem( NULL, configPtr, outputBuffer, "After clear all process success\nNo memory configured\n");
+        return NULL;
+       }
+
+    // Mark all blocks with matching pid as free
+    while( wkgPtr != NULL )
+       {
+        nextPtr = wkgPtr->nextBlock;
+
+        // Check if the block matches the given pid
+        if( wkgPtr->pid == pid )
+           {
+            // Mark as free
+            wkgPtr->pid = X_STATE;
+            wkgPtr->startVAdr = ZERO;
+            wkgPtr->endVAdr = ZERO;
+           }
+
+        wkgPtr = nextPtr;
+       }
+
+    // After marking, combine adjacent free blocks
+    wkgPtr = memHeadPtr;
+
+    while( wkgPtr != NULL )
+       {
+        nextPtr = wkgPtr->nextBlock;
+
+        // Check if both current and next block are free
+        if( wkgPtr->pid == X_STATE && nextPtr != NULL && nextPtr->pid == X_STATE )
+           {
+            // Merge next block into current block
+            wkgPtr->endAdr = nextPtr->endAdr;
+            wkgPtr->nextBlock = nextPtr->nextBlock;
+
+            // Free the merged block
+            free(nextPtr);
+            nextPtr = wkgPtr->nextBlock;  // Update nextPtr after merging
+            continue;  // Continue without advancing wkgPtr to recheck merged block
+           }
+
+        wkgPtr = nextPtr;
+       }
+
+    sprintf( outStr, "After clear process %i success\n", pid );
+    printMem(memHeadPtr, configPtr, outputBuffer, outStr);
+    return memHeadPtr;
+   }
+   
+VmemType *initMem( ConfigDataType *configPtr, OutputString **outputBuffer )
+   {
+    VmemType *memory = ( VmemType * )malloc( sizeof( VmemType ) );
+    // Set up struct
+    memory->startAdr = ZERO;
+    memory->endAdr = configPtr->memAvailable - ONE;
+    memory->startVAdr = ZERO;
+    memory->endVAdr = ZERO;
+    memory->pid = X_STATE;
+    memory->nextBlock = NULL;
+
+    printMem( memory, configPtr, outputBuffer, "After memory initialization\n");
+
+    return memory;
+   }
+
+void printMem( VmemType *memHeadPtr, ConfigDataType *configPtr, OutputString **outputBuffer,
+                                                            const char *outStr )
+   {
+    char bufferStr [ MAX_STR_LEN ];
+    VmemType *wkgPtr;
+    if( configPtr->memDisplay )
+       {
+        sprintf( bufferStr, "--------------------------------------------------\n");
+        *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
+        *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
+
+        wkgPtr = memHeadPtr;
+        while( wkgPtr != NULL)
+           {
+            if( wkgPtr->pid == X_STATE )
+               {
+                sprintf( bufferStr, "%i [ Open, P#: x, 0-0 ] %i\n",
+                                                wkgPtr->startAdr, wkgPtr->endAdr);
+                *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
+               }
+            else
+               {
+                sprintf( bufferStr, "%i [ Used, P#: %i, %i-%i ] %i\n",
+                                wkgPtr->startAdr, wkgPtr->pid, wkgPtr->startVAdr,
+                                                wkgPtr->endVAdr, wkgPtr->endAdr );
+                *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
+               }
+            wkgPtr = wkgPtr->nextBlock;
+           }
+
+        sprintf( bufferStr, "--------------------------------------------------\n");
+        *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
+       }
    }
