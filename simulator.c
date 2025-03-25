@@ -356,6 +356,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
 
                 *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
 
+                // Allocate memory
                 *sysErr = allocateMem( pcb->pid, opCode->intArg2,
                     opCode->intArg3, &memHeadPtr, configPtr, outputBuffer );
 
@@ -371,6 +372,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
                             
                 *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr);
 
+                // Access memory
                 *sysErr = accessMem( pcb->pid, opCode->intArg2, opCode->intArg3,
                                         memHeadPtr, configPtr, outputBuffer );
                }
@@ -416,6 +418,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
         opCode = opCode->nextNode;
        }
 
+    // Check for no memory errors
     if( *sysErr == NO_ERR )
        {
         // Time and print process end
@@ -423,6 +426,8 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
         sprintf( outStr, "\n  %s, OS: Process %i ended\n", timer, pcb->pid );
         *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
        }
+
+    // Memory errors have occured
     else
        {
         // Time and print process end
@@ -432,6 +437,7 @@ PCBtype *executePCB( PCBtype *pcb, ConfigDataType *configPtr,
         *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
        }
 
+    // After process has ended free its memory blocks
     memHeadPtr = freeMem( pcb->pid, memHeadPtr, configPtr, outputBuffer );
     
     // Set PCB state to exit
@@ -546,22 +552,27 @@ OutputString *printBuffer( OutputString *headPtr, ConfigDataType *configPtr )
 SysErrCode allocateMem( int pid, int base, int offset, VmemType** memHeadPtr,
                         ConfigDataType *configPtr, OutputString **outputBuffer )
    {
+    // Initialize variables
     VmemType *wkgPtr = *memHeadPtr;
     VmemType *tempPtr;
     bool memSuccess = false;
 
+    // Iterate over memory LL while we haven't allocated yet
     while( wkgPtr != NULL && !memSuccess)
        {
+        // Check for not empty block that the base or base + offset falls in
         if( wkgPtr->pid != X_STATE && ((wkgPtr->startVAdr <= base && wkgPtr->endVAdr > base) ||
             (wkgPtr->startVAdr < base + offset && wkgPtr->endVAdr > base + offset)) )
            {
+            // Allocate overlap error
             printMem( *memHeadPtr, configPtr, outputBuffer, "After allocate overlap failure\n");
             return ALL_ERR;
            }
 
-        // TODO check for overlapping V addresses
+        // Otherwise, check for free block that can hold requested memory
         else if( wkgPtr->pid == X_STATE && wkgPtr->endAdr - wkgPtr->startAdr >= offset )
            {
+            // Set success to true and allocate new block struct
             memSuccess = true;
             tempPtr = ( VmemType* )malloc( sizeof( VmemType ) );
             tempPtr->startAdr = wkgPtr->startAdr + offset;
@@ -578,15 +589,19 @@ SysErrCode allocateMem( int pid, int base, int offset, VmemType** memHeadPtr,
             wkgPtr->nextBlock = tempPtr;
            }
         
+        // Iterate linked list
         wkgPtr = wkgPtr->nextBlock;
        }
 
+    // Check for success
     if( memSuccess )
        {
+        // Return no errors
         printMem( *memHeadPtr, configPtr, outputBuffer, "After allocate success\n");
         return NO_ERR;
        }
 
+    // Not enough room for allocation, return allocation error 
     printMem( *memHeadPtr, configPtr, outputBuffer, "After allocate out of memory failure\n");
     return ALL_ERR;
    }
@@ -594,18 +609,25 @@ SysErrCode allocateMem( int pid, int base, int offset, VmemType** memHeadPtr,
 SysErrCode accessMem(int pid, int base, int offset, VmemType *memHeadPtr,
                         ConfigDataType *configPtr, OutputString **outputBuffer )
    {
+    // Initialize variables
     VmemType *wkgPtr = memHeadPtr;
 
+    // Iterate over memory LL
     while( wkgPtr != NULL)
        {
+        // Check if current block matches pid and access range fits inside
         if( wkgPtr->pid == pid && wkgPtr->startVAdr <= base && wkgPtr->endVAdr >= base + offset - ONE )
            {
+            // Print mem display and return no errors
             printMem( memHeadPtr, configPtr, outputBuffer, "After access success\n");
             return NO_ERR;
            }
+
+        // Iterate linked list
         wkgPtr = wkgPtr->nextBlock;
        }
 
+    // If no block was found, print mem display and return access error
     printMem( memHeadPtr, configPtr, outputBuffer, "After access failure\n");
     return ACC_ERR;
    }
@@ -613,25 +635,30 @@ SysErrCode accessMem(int pid, int base, int offset, VmemType *memHeadPtr,
 VmemType *freeMem( int pid, VmemType *memHeadPtr, ConfigDataType *configPtr,
                                                  OutputString **outputBuffer )
    {
+    // Initialize variables
     VmemType *wkgPtr = memHeadPtr;
     VmemType *nextPtr;
+    bool merged = false;
     char outStr [MAX_STR_LEN];
 
-    // If pid == FREE_ALL_MEM, free all blocks and reset to one large free block
+    // Check for free all memory flag
     if( pid == FREE_ALL_MEM )
        {
+        // Iterate over memory linked list
         while( wkgPtr != NULL )
            {
+            // Save next block, free current, and iterate
             nextPtr = wkgPtr->nextBlock;
             free(wkgPtr);
             wkgPtr = nextPtr;
            }
 
+        // Print memory display and return NULL pointer
         printMem( NULL, configPtr, outputBuffer, "After clear all process success\nNo memory configured\n");
         return NULL;
        }
 
-    // Mark all blocks with matching pid as free
+    // Iterate over LL searching for matching pid blocks
     while( wkgPtr != NULL )
        {
         nextPtr = wkgPtr->nextBlock;
@@ -645,14 +672,18 @@ VmemType *freeMem( int pid, VmemType *memHeadPtr, ConfigDataType *configPtr,
             wkgPtr->endVAdr = ZERO;
            }
 
+        // Iterate linked list
         wkgPtr = nextPtr;
        }
 
-    // After marking, combine adjacent free blocks
+    // After marking blocks, combine adjacent free blocks
     wkgPtr = memHeadPtr;
 
+    // Iterate over linked list
     while( wkgPtr != NULL )
        {
+        // Reset merged flag
+        merged = false;
         nextPtr = wkgPtr->nextBlock;
 
         // Check if both current and next block are free
@@ -662,15 +693,22 @@ VmemType *freeMem( int pid, VmemType *memHeadPtr, ConfigDataType *configPtr,
             wkgPtr->endAdr = nextPtr->endAdr;
             wkgPtr->nextBlock = nextPtr->nextBlock;
 
-            // Free the merged block
+            // Free the merged block and relink
             free(nextPtr);
-            nextPtr = wkgPtr->nextBlock;  // Update nextPtr after merging
-            continue;  // Continue without advancing wkgPtr to recheck merged block
+            nextPtr = wkgPtr->nextBlock; 
+
+            // Set merged flag
+            merged = true;
            }
 
-        wkgPtr = nextPtr;
+        // If not merged, iterate; otherwise check merged block next iteration
+        if( !merged )
+           {
+            wkgPtr = nextPtr;
+           }
        }
 
+    // Print memory display and return new head pointer
     sprintf( outStr, "After clear process %i success\n", pid );
     printMem(memHeadPtr, configPtr, outputBuffer, outStr);
     return memHeadPtr;
@@ -678,7 +716,9 @@ VmemType *freeMem( int pid, VmemType *memHeadPtr, ConfigDataType *configPtr,
    
 VmemType *initMem( ConfigDataType *configPtr, OutputString **outputBuffer )
    {
+    // Allocate struct memory
     VmemType *memory = ( VmemType * )malloc( sizeof( VmemType ) );
+
     // Set up struct
     memory->startAdr = ZERO;
     memory->endAdr = configPtr->memAvailable - ONE;
@@ -687,41 +727,53 @@ VmemType *initMem( ConfigDataType *configPtr, OutputString **outputBuffer )
     memory->pid = X_STATE;
     memory->nextBlock = NULL;
 
+    // Print memory display and return head pointer
     printMem( memory, configPtr, outputBuffer, "After memory initialization\n");
-
     return memory;
    }
 
 void printMem( VmemType *memHeadPtr, ConfigDataType *configPtr, OutputString **outputBuffer,
                                                             const char *outStr )
    {
+    // Initalize variables
     char bufferStr [ MAX_STR_LEN ];
     VmemType *wkgPtr;
+
+    // Check if memory display is configured
     if( configPtr->memDisplay )
        {
+        // Print and buffer beginining line and given string
         sprintf( bufferStr, "--------------------------------------------------\n");
         *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
         *outputBuffer = bufferOutput( *outputBuffer, outStr, configPtr );
 
+        // Iterate over linked list
         wkgPtr = memHeadPtr;
         while( wkgPtr != NULL)
            {
+            // Check for free block
             if( wkgPtr->pid == X_STATE )
                {
+                // Print free block
                 sprintf( bufferStr, "%i [ Open, P#: x, 0-0 ] %i\n",
                                                 wkgPtr->startAdr, wkgPtr->endAdr);
                 *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
                }
+            // Otherwise, it is a used block
             else
                {
+                // Print used block
                 sprintf( bufferStr, "%i [ Used, P#: %i, %i-%i ] %i\n",
                                 wkgPtr->startAdr, wkgPtr->pid, wkgPtr->startVAdr,
                                                 wkgPtr->endVAdr, wkgPtr->endAdr );
                 *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
                }
+            
+            // Iterate working pointer
             wkgPtr = wkgPtr->nextBlock;
            }
 
+        // Print closing line
         sprintf( bufferStr, "--------------------------------------------------\n");
         *outputBuffer = bufferOutput( *outputBuffer, bufferStr, configPtr );
        }
